@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
-import { Upload, FileText, Download, Languages, Loader2, X, Image as ImageIcon } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Upload, FileText, Download, Languages, Loader2, X, Image as ImageIcon, AlertCircle } from 'lucide-react';
 import { jsPDF } from 'jspdf';
-import { translateImage } from './services/geminiService';
+import { translateImage, isApiKeyMissing } from './services/geminiService';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -15,7 +15,14 @@ export default function App() {
   const [translation, setTranslation] = useState<string>('');
   const [isTranslating, setIsTranslating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showKeyWarning, setShowKeyWarning] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isApiKeyMissing) {
+      setShowKeyWarning(true);
+    }
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -46,9 +53,14 @@ export default function App() {
     try {
       const result = await translateImage(image, mimeType);
       setTranslation(result || 'No text found or translation failed.');
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setError('Translation failed. Please try again.');
+      if (err.message === 'API_KEY_MISSING') {
+        setError('API Key is missing. Please configure GEMINI_API_KEY in your environment.');
+        setShowKeyWarning(true);
+      } else {
+        setError('Translation failed. Please check your internet connection and API key.');
+      }
     } finally {
       setIsTranslating(false);
     }
@@ -116,6 +128,17 @@ export default function App() {
           </div>
         </div>
       </header>
+
+      {showKeyWarning && (
+        <div className="bg-amber-50 border-b border-amber-100 py-3 px-6">
+          <div className="max-w-5xl mx-auto flex items-center gap-3 text-amber-800 text-sm">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <p>
+              <strong>API Key Missing:</strong> The translator won't work until you add <code>GEMINI_API_KEY</code> to your Vercel environment variables.
+            </p>
+          </div>
+        </div>
+      )}
 
       <main className="max-w-5xl mx-auto px-6 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
