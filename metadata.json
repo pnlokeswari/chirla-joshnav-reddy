@@ -1,0 +1,5 @@
+{
+  "name": "Linguist Image Translator",
+  "description": "Translate text from images into English and export as PDF.",
+  "requestFramePermissions": []
+}
